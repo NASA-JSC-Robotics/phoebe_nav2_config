@@ -135,7 +135,7 @@
         resolution: 0.06
         track_unknown_space: true
         always_send_full_costmap: false
-        plugins: ["obstacle_layer", "inflation_layer"]
+        plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
         obstacle_layer:
           plugin: "nav2_costmap_2d::ObstacleLayer"
           enabled: true

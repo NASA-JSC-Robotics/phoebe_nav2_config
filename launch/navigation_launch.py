@@ -39,8 +39,10 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    map_yaml_file = LaunchConfiguration("map")
 
     lifecycle_nodes = [
+        "map_server",
         "controller_server",
         "planner_server",
         "behavior_server",
@@ -114,12 +116,29 @@ def generate_launch_description():
         description="Whether to respawn if a node crashes. Applied when composition is disabled.",
     )
 
+    declare_map_yaml_cmd = DeclareLaunchArgument(
+        "map",
+        default_value=os.path.join(get_package_share_directory("phoebe_description"), "maps", "phoebe.yaml"),
+        description="Full path to the global map yaml file for map_server, feeding global_costmap's static_layer",
+    )
+
     declare_log_level_cmd = DeclareLaunchArgument("log_level", default_value="info", description="log level")
 
     load_nodes = GroupAction(
         condition=IfCondition(PythonExpression(["not ", use_composition])),
         actions=[
             SetParameter("use_sim_time", use_sim_time),
+            Node(
+                package="nav2_map_server",
+                executable="map_server",
+                name="map_server",
+                output="screen",
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[{"yaml_filename": map_yaml_file}],
+                arguments=["--ros-args", "--log-level", log_level],
+                remappings=remappings,
+            ),
             Node(
                 package="nav2_controller",
                 executable="controller_server",
@@ -215,6 +234,13 @@ def generate_launch_description():
                 target_container=container_name_full,
                 composable_node_descriptions=[
                     ComposableNode(
+                        package="nav2_map_server",
+                        plugin="nav2_map_server::MapServer",
+                        name="map_server",
+                        parameters=[{"yaml_filename": map_yaml_file}],
+                        remappings=remappings,
+                    ),
+                    ComposableNode(
                         package="nav2_controller",
                         plugin="nav2_controller::ControllerServer",
                         name="controller_server",
@@ -289,6 +315,7 @@ def generate_launch_description():
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_map_yaml_cmd)
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
