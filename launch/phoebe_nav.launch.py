@@ -161,6 +161,14 @@ def generate_launch_description():
         Node(
             package="tf2_ros",
             executable="static_transform_publisher",
+            name="world_to_map_identity",
+            arguments=["0", "0", "0", "0", "0", "0", "world", "map"],
+            parameters=[{"use_sim_time": use_sim_time}],
+            condition=IfCondition(magic_carpet),
+        ),
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
             name="map_to_odom_identity",
             arguments=["0", "0", "0", "0", "0", "0", "map", "phoebe_odom"],
             parameters=[{"use_sim_time": use_sim_time}],
