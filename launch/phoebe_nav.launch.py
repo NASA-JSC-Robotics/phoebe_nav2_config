@@ -204,7 +204,8 @@ def generate_launch_description():
             package="phoebe_deploy",
             executable="world_publisher.py",
             name="world_publisher",
-            parameters=[{"use_sim_time": use_sim_time}],
+            parameters=[{"use_sim_time": use_sim_time, 
+                         "rate_hz": 30}],
         ),
         # Launch the odom to joint state publisher if needed for other planning applications.
         Node(
