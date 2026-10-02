@@ -40,7 +40,7 @@
         stateful: True
         plugin: "nav2_controller::SimpleGoalChecker"
         xy_goal_tolerance: 0.1
-        yaw_goal_tolerance: 0.05
+        yaw_goal_tolerance: 0.1
       FollowPath:
         plugin: "dwb_core::DWBLocalPlanner"
         debug_trajectory_details: False
@@ -51,13 +51,13 @@
         max_vel_theta: 0.2
         min_speed_xy: 0.0
         max_speed_xy: 0.2
-        min_speed_theta: -0.2
+        min_speed_theta: 0.0
         acc_lim_x: 0.2
         acc_lim_y: 0.2
         acc_lim_theta: 0.6
         decel_lim_x: -0.2
         decel_lim_y: -0.2
-        decel_lim_theta: -0.2
+        decel_lim_theta: -0.6
         vx_samples: 10
         vy_samples: 10
         vtheta_samples: 10
@@ -70,7 +70,7 @@
         rot_stopped_velocity: 0.01
         short_circuit_trajectory_evaluation: True
         stateful: True
-        critics: ["RotateToGoal", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+        critics: ["RotateToGoal", "Twirling", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
         BaseObstacle.scale: 0.02
         PathAlign.scale: 32.0
         PathAlign.forward_point_distance: 0.1
@@ -78,8 +78,9 @@
         GoalAlign.forward_point_distance: 0.1
         PathDist.scale: 32.0
         GoalDist.scale: 24.0
+        Twirling.scale: 32.0
         RotateToGoal.scale: 32.0
-        RotateToGoal.slowing_factor: 12.0
+        RotateToGoal.slowing_factor: 5.0
         RotateToGoal.lookahead_time: -1.0
 
   local_costmap:
