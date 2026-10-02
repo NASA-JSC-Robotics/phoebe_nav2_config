@@ -32,6 +32,7 @@ from launch_ros.actions import Node, PushRosNamespace, SetRemap
 def generate_launch_description():
     pkg_phoebe_nav2_config = get_package_share_directory("phoebe_nav2_config")
     pkg_phoebe_deploy = get_package_share_directory("phoebe_deploy")
+    pkg_phoebe_description = get_package_share_directory("phoebe_description")
 
     declared_arguments = []
     declared_arguments.append(
@@ -90,6 +91,13 @@ def generate_launch_description():
     )
     declared_arguments.append(
         DeclareLaunchArgument(
+            "map",
+            default_value=PathJoinSubstitution([pkg_phoebe_description, "maps", "phoebe.yaml"]),
+            description="Full path to the global map yaml file, feeding global_costmap's static_layer.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             "nav2_config_file",
             default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "clearpath_nav2_config.yaml"]),
             description="Full path for the nav2 stack config file.",
@@ -117,6 +125,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     publish_tf = LaunchConfiguration("publish_tf")
     magic_carpet = LaunchConfiguration("magic_carpet")
+    map_yaml_file = LaunchConfiguration("map")
     nav2_config_file = LaunchConfiguration("nav2_config_file")
     localization_config_file = LaunchConfiguration("localization_config_file")
     slam_config_file = LaunchConfiguration("slam_config_file")
@@ -176,6 +185,7 @@ def generate_launch_description():
                 "tf_prefix": tf_prefix,
                 "params_file": nav2_config_file,
                 "use_sim_time": use_sim_time,
+                "map": map_yaml_file,
             }.items(),
         ),
         IncludeLaunchDescription(
