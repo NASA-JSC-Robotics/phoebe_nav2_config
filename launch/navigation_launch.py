@@ -125,8 +125,8 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         "map",
-        default_value=os.path.join(get_package_share_directory("phoebe_description"), "maps", "phoebe.yaml"),
-        description="Full path to the global map yaml file for map_server, feeding global_costmap's static_layer",
+        default_value=os.path.join(get_package_share_directory("phoebe_nav2_config"), "config", "maps", "empty.yaml"),
+        description="Full path to the global map yaml file for map_server.",
     )
 
     declare_log_level_cmd = DeclareLaunchArgument("log_level", default_value="info", description="log level")

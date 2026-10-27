@@ -32,7 +32,6 @@ from launch_ros.actions import Node, PushRosNamespace, SetRemap
 def generate_launch_description():
     pkg_phoebe_nav2_config = get_package_share_directory("phoebe_nav2_config")
     pkg_phoebe_deploy = get_package_share_directory("phoebe_deploy")
-    pkg_phoebe_description = get_package_share_directory("phoebe_description")
 
     declared_arguments = []
     declared_arguments.append(
@@ -92,8 +91,8 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "map",
-            default_value=PathJoinSubstitution([pkg_phoebe_description, "maps", "phoebe.yaml"]),
-            description="Full path to the global map yaml file, feeding global_costmap's static_layer.",
+            default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "maps", "empty.yaml"]),
+            description="Full path to the global map yaml file.",
         )
     )
     declared_arguments.append(
