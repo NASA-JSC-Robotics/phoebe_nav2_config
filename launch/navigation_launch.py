@@ -31,6 +31,7 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory("nav2_bringup")
 
     namespace = LaunchConfiguration("namespace")
+    tf_prefix = LaunchConfiguration("tf_prefix")
     use_sim_time = LaunchConfiguration("use_sim_time")
     autostart = LaunchConfiguration("autostart")
     params_file = LaunchConfiguration("params_file")
@@ -79,6 +80,12 @@ def generate_launch_description():
     stdout_linebuf_envvar = SetEnvironmentVariable("RCUTILS_LOGGING_BUFFERED_STREAM", "1")
 
     declare_namespace_cmd = DeclareLaunchArgument("namespace", default_value="", description="Top-level namespace")
+
+    declare_tf_prefix_cmd = DeclareLaunchArgument(
+        "tf_prefix",
+        default_value="",
+        description="tf_prefix applied to the map_server's published map frame_id",
+    )
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         "use_sim_time",
@@ -135,7 +142,7 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[{"yaml_filename": map_yaml_file}],
+                parameters=[{"yaml_filename": map_yaml_file, "frame_id": [tf_prefix, "map"]}],
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=remappings,
             ),
@@ -237,7 +244,7 @@ def generate_launch_description():
                         package="nav2_map_server",
                         plugin="nav2_map_server::MapServer",
                         name="map_server",
-                        parameters=[{"yaml_filename": map_yaml_file}],
+                        parameters=[{"yaml_filename": map_yaml_file, "frame_id": [tf_prefix, "map"]}],
                         remappings=remappings,
                     ),
                     ComposableNode(
@@ -308,6 +315,7 @@ def generate_launch_description():
 
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
+    ld.add_action(declare_tf_prefix_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
