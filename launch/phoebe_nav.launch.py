@@ -92,10 +92,12 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "mode",
-            default_value="localization",
+            default_value=PythonExpression(
+                ["'localization' if '", LaunchConfiguration("use_sim_time"), "' == 'true' else 'mapping'"]
+            ),
             choices=["localization", "mapping"],
-            description="localization: Just run AMCL against the map below. mapping: build a new map with "
-            "slam_toolbox (ignored in magic_carpet mode).",
+            description="localization: run AMCL against the map below. mapping: run slam_toolbox. Defaults to "
+            "localization in sim and mapping on hardware (ignored in magic_carpet mode).",
         )
     )
     declared_arguments.append(
@@ -108,7 +110,19 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "nav2_config_file",
-            default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "clearpath_nav2_config.yaml"]),
+            default_value=PathJoinSubstitution(
+                [
+                    pkg_phoebe_nav2_config,
+                    "config",
+                    PythonExpression(
+                        [
+                            "'clearpath_nav2_config_sim.yaml' if '",
+                            LaunchConfiguration("use_sim_time"),
+                            "' == 'true' else 'clearpath_nav2_config.yaml'",
+                        ]
+                    ),
+                ]
+            ),
             description="Full path for the nav2 stack config file.",
         )
     )
@@ -122,8 +136,8 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "slam_config_file",
-            default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "clearpath_slam_config_no_tf.yaml"]),
-            description="Full path for the slam_toolbox config yaml file, used in mode:=mapping.",
+            default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "clearpath_slam_config.yaml"]),
+            description="Full path for the slam_toolbox config yaml file, used in mode:=mapping with publish_tf.",
         )
     )
 
@@ -152,7 +166,8 @@ def generate_launch_description():
         GroupAction(
             condition=UnlessCondition(magic_carpet),
             actions=[
-                # mode:=localization - AMCL against the static map, plus map_server.
+                # If using localization, run AMCL against the static map and map server. Note that we do not have
+                # a hardware map, so this is only relevant for sim.
                 GroupAction(
                     condition=IfCondition(is_localization_mode),
                     actions=[
@@ -172,7 +187,8 @@ def generate_launch_description():
                         ),
                     ],
                 ),
-                # mode:=mapping - build a new map with slam_toolbox instead of localizing.
+                # Mapping mode will build a new map with slam_toolbox instead of localizing.
+                # TODO: This is not actually tested on HW yet
                 GroupAction(
                     condition=IfCondition(is_mapping_mode),
                     actions=[
@@ -181,9 +197,24 @@ def generate_launch_description():
                                 [PathJoinSubstitution([pkg_phoebe_nav2_config, "launch", "online_async_launch.py"])]
                             ),
                             launch_arguments={
-                                "use_sim_time": use_sim_time,
+                                "tf_prefix": tf_prefix,
                                 "slam_params_file": slam_config_file,
+                                "use_sim_time": use_sim_time,
                             }.items(),
+                            condition=IfCondition(publish_tf),
+                        ),
+                        IncludeLaunchDescription(
+                            PythonLaunchDescriptionSource(
+                                [PathJoinSubstitution([pkg_phoebe_nav2_config, "launch", "online_async_launch.py"])]
+                            ),
+                            launch_arguments={
+                                "tf_prefix": tf_prefix,
+                                "slam_params_file": PathJoinSubstitution(
+                                    [pkg_phoebe_nav2_config, "config/clearpath_slam_config_no_tf.yaml"]
+                                ),
+                                "use_sim_time": use_sim_time,
+                            }.items(),
+                            condition=UnlessCondition(publish_tf),
                         ),
                     ],
                 ),
