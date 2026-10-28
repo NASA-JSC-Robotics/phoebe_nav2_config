@@ -11,9 +11,10 @@ Regular launch:
 ros2 launch phoebe_nav2_config phoebe_nav.launch.py use_sim_time:=true
 ```
 
-By default, Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`).
-`map_server` always runs, even in magic carpet mode, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
-Pass `mode:=mapping` instead of the default `mode:=localization` to build a new map with `slam_toolbox` rather than localize against an existing one.
+In simulation (`use_sim_time:=true`), Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`) using `config/clearpath_nav2_config_sim.yaml`.
+On hardware, the default is to run in a "mapping" mode, where the `slam_toolbox` provides `map -> odom` and the map, using `config/clearpath_nav2_config.yaml`.
+These can be overridden from the command line.
+We note that the `map_server` always runs, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
 
 When running Phoebe in magic carpet mode, we should disable AMCL.
 The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
