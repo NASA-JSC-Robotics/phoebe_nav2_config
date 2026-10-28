@@ -146,7 +146,7 @@ def generate_launch_description():
     is_mapping_mode = PythonExpression(["'", mode, "' == 'mapping'"])
 
     nodes_to_start = [
-        # Localization/mapping are both skipped in magic carpet mode. Instead we rely on the magic
+        # AMCL/mapping are both skipped in magic carpet mode. Instead we rely on the magic
         # carpet controller to connect odom -> base_link, and a static transform publisher in
         # place of localization.
         GroupAction(
@@ -188,6 +188,21 @@ def generate_launch_description():
                     ],
                 ),
             ],
+        ),
+        # Magic carpet still needs map_server for the global costmap's static layer, but no AMCL.
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [PathJoinSubstitution([pkg_phoebe_nav2_config, "launch", "localization.launch.py"])]
+            ),
+            launch_arguments={
+                "namespace": "",
+                "tf_prefix": tf_prefix,
+                "use_sim_time": use_sim_time,
+                "map": map_yaml_file,
+                "params_file": nav2_config_file,
+                "use_amcl": "false",
+            }.items(),
+            condition=IfCondition(magic_carpet),
         ),
         Node(
             package="tf2_ros",
