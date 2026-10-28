@@ -28,6 +28,7 @@ from launch.substitutions import PathJoinSubstitution
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import PythonExpression
 from launch_ros.actions import Node, PushRosNamespace, SetRemap
+from launch_ros.parameter_descriptions import ParameterFile
 
 
 def generate_launch_description():
@@ -263,9 +264,26 @@ def generate_launch_description():
                 "namespace": "",
                 "tf_prefix": tf_prefix,
                 "is_sim": use_sim_time,
-                "publish_tf": publish_tf,
-                "localization_config": localization_config_file,
             }.items(),
+            condition=UnlessCondition(magic_carpet),
+        ),
+        # Fuses wheel odometry and the IMU into odom -> base_link and ridgeback/odometry/filtered.
+        Node(
+            package="robot_localization",
+            executable="ekf_node",
+            name="ekf_node",
+            namespace="ridgeback",
+            output="screen",
+            parameters=[
+                ParameterFile(localization_config_file, allow_substs=True),
+                {"use_sim_time": use_sim_time, "publish_tf": publish_tf},
+            ],
+            remappings=[
+                ("~/odometry/filtered", "platform/odom/filtered"),
+                ("~/diagnostics", "diagnostics"),
+                ("~/tf", "tf"),
+                ("~/tf_static", "tf_static"),
+            ],
             condition=UnlessCondition(magic_carpet),
         ),
         Node(
