@@ -40,16 +40,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "namespace",
             default_value="",
-            description="Namespace for the hardware robot",
+            description="Namespace for the robot.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "tf_prefix",
             default_value="",
-            description="tf_prefix of the joint names, useful for \
-        multi-robot setup. If changed, also joint names in the controllers' configuration \
-        have to be updated.",
+            description="Prefix for tf frames and joint names. Must match the robot description and controllers.",
         )
     )
     declared_arguments.append(
@@ -72,22 +70,22 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "use_sim_time",
             default_value="false",
-            description="This is some kind of simulation environment",
+            description="Use the simulation clock. Also selects the sim defaults for mode and nav2_config_file.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "publish_tf",
             default_value="True",
-            description="Whether or not to publish tf from slam, defaults to False."
-            "If False, users must manually handle map -> odom -> base_link transforms.",
+            description="Publish map -> odom (from slam_toolbox or AMCL) and odom -> base_link (from the EKF). "
+            "If false, handle these transforms elsewhere.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "magic_carpet",
             default_value="false",
-            description="Use ground-truth odometry from virtual joints as Phoebe is on a magic carpet ride",
+            description="Use ground-truth odometry from the sim magic carpet. Skips AMCL, slam_toolbox and the EKF.",
         )
     )
     declared_arguments.append(
@@ -97,15 +95,15 @@ def generate_launch_description():
                 ["'localization' if '", LaunchConfiguration("use_sim_time"), "' == 'true' else 'mapping'"]
             ),
             choices=["localization", "mapping"],
-            description="localization: run AMCL against the map below. mapping: run slam_toolbox. Defaults to "
-            "localization in sim and mapping on hardware (ignored in magic_carpet mode).",
+            description="localization: AMCL against map. mapping: slam_toolbox. Defaults to localization in sim, "
+            "mapping on hardware. Ignored with magic_carpet.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "map",
             default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "maps", "phoebe_sim_env.yaml"]),
-            description="Full path to the global map yaml file, used in mode:=localization.",
+            description="Map yaml for the global costmap and AMCL. Defaults to the sim map.",
         )
     )
     declared_arguments.append(
@@ -124,21 +122,22 @@ def generate_launch_description():
                     ),
                 ]
             ),
-            description="Full path for the nav2 stack config file.",
+            description="Nav2 params yaml, including the amcl block. Defaults to the sim config in sim.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
-            "localization_config_file",
+            "ekf_config_file",
             default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "localization.yaml"]),
-            description="Full path for the localization yaml config file.",
+            description="robot_localization EKF params yaml.",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "slam_config_file",
             default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "clearpath_slam_config.yaml"]),
-            description="Full path for the slam_toolbox config yaml file, used in mode:=mapping with publish_tf.",
+            description="slam_toolbox params yaml for mode:=mapping, used when publish_tf is true. "
+            "Otherwise the packaged no-tf config is used.",
         )
     )
 
@@ -152,7 +151,7 @@ def generate_launch_description():
     mode = LaunchConfiguration("mode")
     map_yaml_file = LaunchConfiguration("map")
     nav2_config_file = LaunchConfiguration("nav2_config_file")
-    localization_config_file = LaunchConfiguration("localization_config_file")
+    ekf_config_file = LaunchConfiguration("ekf_config_file")
     slam_config_file = LaunchConfiguration("slam_config_file")
 
     rviz_qss_file = PathJoinSubstitution([get_package_share_directory("phoebe_nav2_config"), "config", "dark.qss"])
@@ -275,7 +274,7 @@ def generate_launch_description():
             namespace="ridgeback",
             output="screen",
             parameters=[
-                ParameterFile(localization_config_file, allow_substs=True),
+                ParameterFile(ekf_config_file, allow_substs=True),
                 {"use_sim_time": use_sim_time, "publish_tf": publish_tf},
             ],
             remappings=[
