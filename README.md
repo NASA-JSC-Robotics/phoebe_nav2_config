@@ -60,15 +60,12 @@ graph TD
     IMU_BC -->|sensor_msgs/msg/Imu| IMU_TOPIC([ridgeback/sensors/imu_0/data_raw])
 
     subgraph Nav2 Localization
-        IMU_FILTER[imu_filter_madgwick]
         EKF[ekf_node]
         MAP_SERVER[map_server]
         AMCL[amcl]
     end
 
-    IMU_TOPIC --> IMU_FILTER
-    IMU_FILTER --> EKF
-    ODOM_TOPIC --> EKF
+    IMU_TOPIC --> EKF
     ODOM2_TOPIC --> EKF
 
     EKF -->|"TF: odom -> base_link"| TF_TREE([TF Tree])
@@ -164,7 +161,7 @@ A few things we have found helpful:
 In RViz, inspect the path (`nav_msgs/msg/Path`) on topic `plan`.
 - **Controller Commands**: Check the velocity command topics from the Nav2 stack:
   - `cmd_vel_nav`: output from `controller_server`
-  - `cmd_vel_smoothed`: output from `velocity_smother`
+  - `cmd_vel_smoothed`: output from `velocity_smoother`
   - `cmd_vel`: output from `collision_monitor`, which is sent to the platform's `twist_mux` to command the robot
 - **Robot Footprint**: Check the robot's footprint against the obstacles.
 In RViz, inspect the footprint polygon (`geometry_msgs/msg/PolygonStamped`) on topic `local_costmap/published_footprint` and local and global costmaps (`nav_msgs/msg/OccupancyGrid`) on topics `local_costmap/costmap` and `global_costmap/costmap` respectively.
