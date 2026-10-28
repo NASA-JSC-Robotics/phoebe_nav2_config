@@ -88,6 +88,8 @@ def generate_launch_description():
             description="Use ground-truth odometry from the sim magic carpet. Skips AMCL, slam_toolbox and the EKF.",
         )
     )
+    # We always launch in localization mode if we are in sim, because we have a perfect static map.
+    # Creating an equivalent map from the phoebe env is TBD.
     declared_arguments.append(
         DeclareLaunchArgument(
             "mode",
@@ -96,7 +98,7 @@ def generate_launch_description():
             ),
             choices=["localization", "mapping"],
             description="localization: AMCL against map. mapping: slam_toolbox. Defaults to localization in sim, "
-            "mapping on hardware. Ignored with magic_carpet.",
+            "mapping on hardware. ",
         )
     )
     declared_arguments.append(
