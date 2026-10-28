@@ -5,4 +5,4 @@ find_package(ament_cmake REQUIRED)
 
 ament_package()
 
-install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config launch rviz scripts DESTINATION share/${PROJECT_NAME})

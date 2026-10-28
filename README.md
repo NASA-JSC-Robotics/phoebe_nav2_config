@@ -11,12 +11,14 @@ Regular launch:
 ros2 launch phoebe_nav2_config phoebe_nav.launch.py use_sim_time:=true
 ```
 
-When running Phoebe in magic carpet mode, we should disable localization.
-The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
-Running an EKF on top of perfect odometry only introduces drift!
+By default, Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`).
+`map_server` always runs, even in magic carpet mode, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
+Pass `mode:=mapping` instead of the default `mode:=localization` to build a new map with `slam_toolbox` rather than localize against an existing one.
 
-SLAM can remain enabled, if desired.
-By default, however, Phoebe's Nav2 config _disables_ SLAM in magic carpet mode, instead publishing a static TF from `map -> odom` to prevent noise.
+When running Phoebe in magic carpet mode, we should disable AMCL.
+The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
+Running an EKF - or a localizer - on top of perfect odometry only introduces drift!
+By default, Phoebe's Nav2 config _disables_ AMCL in magic carpet mode, instead publishing a static TF from `map -> odom` to prevent noise.
 
 Ensure the world joints (linear x, linear y, yaw) are **not** published by `joint_state_broadcaster`, so `robot_state_publisher` doesn't produce a competing `odom -> base_link` chain from the URDF.
 
@@ -60,7 +62,8 @@ graph TD
     subgraph Nav2 Localization
         IMU_FILTER[imu_filter_madgwick]
         EKF[ekf_node]
-        SLAM_TB[slam_toolbox]
+        MAP_SERVER[map_server]
+        AMCL[amcl]
     end
 
     IMU_TOPIC --> IMU_FILTER
@@ -71,9 +74,10 @@ graph TD
     EKF -->|"TF: odom -> base_link"| TF_TREE([TF Tree])
     EKF -->|nav_msgs/msg/Odometry| FILTERED_ODOM([odometry/filtered])
 
-    LIDAR_TOPIC --> SLAM_TB
-    SLAM_TB -->|"TF: map → odom"| TF_TREE
-    SLAM_TB -->|nav_msgs/msg/OccupancyGrid| MAP_TOPIC([map])
+    MAP_SERVER -->|nav_msgs/msg/OccupancyGrid, latched| MAP_TOPIC([map])
+    LIDAR_TOPIC --> AMCL
+    MAP_TOPIC --> AMCL
+    AMCL -->|"TF: map -> odom"| TF_TREE
 
     subgraph Nav2 Stack
         NAV["Nav2 Stack! <br> (see below for more info)"]

@@ -1,4 +1,4 @@
-image: phoebe.pgm
+image: phoebe_sim_env.pgm
 mode: trinary
 resolution: 0.05
 origin: [-4.050, -3.500, 0]
