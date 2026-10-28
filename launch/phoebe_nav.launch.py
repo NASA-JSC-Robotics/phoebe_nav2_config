@@ -129,7 +129,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "localization_config_file",
-            default_value=PathJoinSubstitution([pkg_phoebe_deploy, "config", "ridgeback", "localization.yaml"]),
+            default_value=PathJoinSubstitution([pkg_phoebe_nav2_config, "config", "localization.yaml"]),
             description="Full path for the localization yaml config file.",
         )
     )
