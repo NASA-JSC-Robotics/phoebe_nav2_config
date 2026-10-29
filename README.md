@@ -13,8 +13,10 @@ ros2 launch phoebe_nav2_config phoebe_nav.launch.py use_sim_time:=true
 
 In simulation (`use_sim_time:=true`), Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`) using `config/clearpath_nav2_config_sim.yaml`.
 On hardware, the default is to run in a "mapping" mode, where the `slam_toolbox` provides `map -> odom` and the map, using `config/clearpath_nav2_config.yaml`.
-These can be overridden from the command line.
-We note that the `map_server` always runs, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
+These param files are all overrideable, depending on your deployment, see `ros2 launch phoebe_nav2_config phoebe_nav.launch.py -s`.
+
+The `map_server` runs in localization mode and in magic carpet mode, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
+In mapping mode `slam_toolbox` publishes `/map` instead.
 
 When running Phoebe in magic carpet mode, we should disable AMCL.
 The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
@@ -64,6 +66,7 @@ graph TD
         EKF[ekf_node]
         MAP_SERVER[map_server]
         AMCL[amcl]
+        SLAM[slam_toolbox]
     end
 
     IMU_TOPIC --> EKF
@@ -76,6 +79,10 @@ graph TD
     LIDAR_TOPIC --> AMCL
     MAP_TOPIC --> AMCL
     AMCL -->|"TF: map -> odom"| TF_TREE
+
+    LIDAR_TOPIC -->|mode:=mapping| SLAM
+    SLAM -->|nav_msgs/msg/OccupancyGrid| MAP_TOPIC
+    SLAM -->|"TF: map -> odom"| TF_TREE
 
     subgraph Nav2 Stack
         NAV["Nav2 Stack! <br> (see below for more info)"]
