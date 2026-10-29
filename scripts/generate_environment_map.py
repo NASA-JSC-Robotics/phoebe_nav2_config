@@ -140,7 +140,7 @@ def rasterize(polygons, resolution, margin):
     img = Image.new("L", (width, height), color=254)  # 254 = free
     draw = ImageDraw.Draw(img)
     for poly in polygons:
-        draw.polygon([to_pixel(pt) for pt in poly], fill=0)  # 0 = occupied
+        draw.polygon([to_pixel(pt) for pt in poly], outline=0, width=2)
     return img, (min_x, min_y)
 
 
