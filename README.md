@@ -15,8 +15,9 @@ In simulation (`use_sim_time:=true`), Phoebe localizes with AMCL against a stati
 On hardware, the default is to run in a "mapping" mode, where the `slam_toolbox` provides `map -> odom` and the map, using `config/clearpath_nav2_config.yaml`.
 These param files are all overrideable, depending on your deployment, see `ros2 launch phoebe_nav2_config phoebe_nav.launch.py -s`.
 
-The `map_server` runs in localization mode and in magic carpet mode, since the global costmap's static layer needs `/map` regardless of how `map -> odom` is sourced.
+The `map_server` runs in localization mode and in magic carpet mode.
 In mapping mode `slam_toolbox` publishes `/map` instead.
+Note that for now neither the local nor global costmaps use a static layer, they are instead built from lidar.
 
 When running Phoebe in magic carpet mode, we should disable AMCL.
 The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
