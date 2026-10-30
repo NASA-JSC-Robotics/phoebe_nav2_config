@@ -13,7 +13,7 @@ ros2 launch phoebe_nav2_config phoebe_nav.launch.py use_sim_time:=true
 
 In simulation (`use_sim_time:=true`), Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`) using `config/clearpath_nav2_config_sim.yaml`.
 On hardware, the default is to run in a "mapping" mode, where the `slam_toolbox` provides `map -> odom` and the map, using `config/clearpath_nav2_config.yaml`.
-These param files are all overrideable, depending on your deployment, see `ros2 launch phoebe_nav2_config phoebe_nav.launch.py -s`.
+These param files are all overridable, depending on your deployment, see `ros2 launch phoebe_nav2_config phoebe_nav.launch.py -s`.
 
 The `map_server` runs in localization mode and in magic carpet mode.
 In mapping mode `slam_toolbox` publishes `/map` instead.
