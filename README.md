@@ -11,12 +11,18 @@ Regular launch:
 ros2 launch phoebe_nav2_config phoebe_nav.launch.py use_sim_time:=true
 ```
 
-When running Phoebe in magic carpet mode, we should disable localization.
-The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
-Running an EKF on top of perfect odometry only introduces drift!
+In simulation (`use_sim_time:=true`), Phoebe localizes with AMCL against a static map generated from the mujoco environment description (`config/maps/phoebe_sim_env.yaml`) using `config/clearpath_nav2_config_sim.yaml`.
+On hardware, the default is to run in a "mapping" mode, where the `slam_toolbox` provides `map -> odom` and the map, using `config/clearpath_nav2_config.yaml`.
+These param files are all overrideable, depending on your deployment, see `ros2 launch phoebe_nav2_config phoebe_nav.launch.py -s`.
 
-SLAM can remain enabled, if desired.
-By default, however, Phoebe's Nav2 config _disables_ SLAM in magic carpet mode, instead publishing a static TF from `map -> odom` to prevent noise.
+The `map_server` runs in localization mode and in magic carpet mode.
+In mapping mode `slam_toolbox` publishes `/map` instead.
+Note that for now neither the local nor global costmaps use a static layer, they are instead built from lidar.
+
+When running Phoebe in magic carpet mode, we should disable AMCL.
+The magic carpet controller publishes both the odom topic and the `odom -> base_link` TF directly from ground truth.
+Running an EKF - or a localizer - on top of perfect odometry only introduces drift!
+By default, Phoebe's Nav2 config _disables_ AMCL in magic carpet mode, instead publishing a static TF from `map -> odom` to prevent noise.
 
 Ensure the world joints (linear x, linear y, yaw) are **not** published by `joint_state_broadcaster`, so `robot_state_publisher` doesn't produce a competing `odom -> base_link` chain from the URDF.
 
@@ -58,22 +64,26 @@ graph TD
     IMU_BC -->|sensor_msgs/msg/Imu| IMU_TOPIC([ridgeback/sensors/imu_0/data_raw])
 
     subgraph Nav2 Localization
-        IMU_FILTER[imu_filter_madgwick]
         EKF[ekf_node]
-        SLAM_TB[slam_toolbox]
+        MAP_SERVER[map_server]
+        AMCL[amcl]
+        SLAM[slam_toolbox]
     end
 
-    IMU_TOPIC --> IMU_FILTER
-    IMU_FILTER --> EKF
-    ODOM_TOPIC --> EKF
+    IMU_TOPIC --> EKF
     ODOM2_TOPIC --> EKF
 
     EKF -->|"TF: odom -> base_link"| TF_TREE([TF Tree])
     EKF -->|nav_msgs/msg/Odometry| FILTERED_ODOM([odometry/filtered])
 
-    LIDAR_TOPIC --> SLAM_TB
-    SLAM_TB -->|"TF: map → odom"| TF_TREE
-    SLAM_TB -->|nav_msgs/msg/OccupancyGrid| MAP_TOPIC([map])
+    MAP_SERVER -->|nav_msgs/msg/OccupancyGrid, latched| MAP_TOPIC([map])
+    LIDAR_TOPIC --> AMCL
+    MAP_TOPIC --> AMCL
+    AMCL -->|"TF: map -> odom"| TF_TREE
+
+    LIDAR_TOPIC -->|mode:=mapping| SLAM
+    SLAM -->|nav_msgs/msg/OccupancyGrid| MAP_TOPIC
+    SLAM -->|"TF: map -> odom"| TF_TREE
 
     subgraph Nav2 Stack
         NAV["Nav2 Stack! <br> (see below for more info)"]
@@ -160,7 +170,7 @@ A few things we have found helpful:
 In RViz, inspect the path (`nav_msgs/msg/Path`) on topic `plan`.
 - **Controller Commands**: Check the velocity command topics from the Nav2 stack:
   - `cmd_vel_nav`: output from `controller_server`
-  - `cmd_vel_smoothed`: output from `velocity_smother`
+  - `cmd_vel_smoothed`: output from `velocity_smoother`
   - `cmd_vel`: output from `collision_monitor`, which is sent to the platform's `twist_mux` to command the robot
 - **Robot Footprint**: Check the robot's footprint against the obstacles.
 In RViz, inspect the footprint polygon (`geometry_msgs/msg/PolygonStamped`) on topic `local_costmap/published_footprint` and local and global costmaps (`nav_msgs/msg/OccupancyGrid`) on topics `local_costmap/costmap` and `global_costmap/costmap` respectively.
