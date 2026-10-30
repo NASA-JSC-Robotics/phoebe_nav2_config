@@ -26,11 +26,13 @@ To run:
     python3 scripts/generate_environment_map.py -o /tmp/phoebe_xacro
     # writes /tmp/phoebe_xacro.pgm and /tmp/phoebe_xacro.yaml
 
+DISCLAIMER: This script is AI-generated. We exclusively use it in simulation
+and not for real nav applications, so use it at your own risk.
+
 Copy and paste as needed.
 """
 
 import argparse
-import PyKDL
 import trimesh
 import xacro
 
@@ -49,42 +51,18 @@ DEFAULT_XACRO = (
 ROOT_LINK = "world"
 
 
-def kdl_frame(origin):
+def origin_matrix(origin):
+    """4x4 transform for a URDF <origin>. URDF rpy is fixed-axis xyz, i.e. trimesh's 'sxyz'."""
     if origin is None:
-        return PyKDL.Frame()
-    return PyKDL.Frame(PyKDL.Rotation.RPY(*origin.rpy), PyKDL.Vector(*origin.xyz))
-
-
-def frame_to_rt(frame):
-    rot = np.array([[frame.M[i, j] for j in range(3)] for i in range(3)])
-    trans = np.array([frame.p.x(), frame.p.y(), frame.p.z()])
-    return rot, trans
+        return np.eye(4)
+    T = trimesh.transformations.euler_matrix(*origin.rpy, axes="sxyz")
+    T[:3, 3] = origin.xyz
+    return T
 
 
 def resolve_mesh_path(filename):
     pkg, _, rel = filename.removeprefix("package://").partition("/")
     return Path(get_package_share_directory(pkg)) / rel
-
-
-def convex_hull(points_xy):
-    pts = sorted(set(map(tuple, points_xy)))
-    if len(pts) <= 2:
-        return pts
-
-    def cross(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-
-    lower = []
-    for p in pts:
-        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
-        lower.append(p)
-    upper = []
-    for p in reversed(pts):
-        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
-        upper.append(p)
-    return lower[:-1] + upper[:-1]
 
 
 def box_corners(size):
@@ -98,20 +76,19 @@ def collect_collision_polygons(xacro_path):
     robot = URDF.from_xml_string(xacro.process_file(str(xacro_path)).toxml())
     joint_by_child = {j.child: j for j in robot.joints}
 
-    world_frame = {ROOT_LINK: PyKDL.Frame()}
+    world_frame = {ROOT_LINK: np.eye(4)}
 
     def fk(link_name):
         if link_name not in world_frame:
             joint = joint_by_child[link_name]
-            world_frame[link_name] = fk(joint.parent) * kdl_frame(joint.origin)
+            world_frame[link_name] = fk(joint.parent) @ origin_matrix(joint.origin)
         return world_frame[link_name]
 
     polygons = []
     for link in robot.links:
         link_frame = fk(link.name)
         for collision in link.collisions:
-            shape_frame = link_frame * kdl_frame(collision.origin)
-            rot, trans = frame_to_rt(shape_frame)
+            shape_frame = link_frame @ origin_matrix(collision.origin)
             geom = collision.geometry
             if isinstance(geom, Box):
                 local_pts = box_corners(geom.size)
@@ -119,8 +96,8 @@ def collect_collision_polygons(xacro_path):
                 local_pts = trimesh.load_mesh(resolve_mesh_path(geom.filename)).vertices
             else:
                 continue
-            world_pts = (rot @ local_pts.T + trans[:, None]).T
-            polygons.append(np.array(convex_hull(world_pts[:, :2])))
+            world_pts = trimesh.transform_points(local_pts, shape_frame)
+            polygons.append(trimesh.convex.hull_points(world_pts[:, :2]))
     return polygons
 
 
